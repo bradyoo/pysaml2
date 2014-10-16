@@ -73,7 +73,7 @@ def ac_factory(path=""):
                         atco.from_dict(item)
                         acs.append(atco)
     else:
-        for map in ["basic", "saml_uri", "shibboleth_uri"]:
+        for map in ["basic", "saml_uri", "shibboleth_uri", "unspecified"]:
             mod = import_module(".%s" % map, "saml2.attributemaps")
             for key, item in mod.__dict__.items():
                 if key.startswith("__"):
@@ -106,7 +106,7 @@ def ac_factory_II(path):
 #            atco.adjust()
 #            acs.append(atco)
 #    return acs
-    
+
 def ava_fro(acs, statement):
     """  Translates attributes according to their name_formats into the local
      names.
@@ -117,9 +117,9 @@ def ava_fro(acs, statement):
     """
     if not statement:
         return {}
-        
+
     acsdic = dict([(ac.name_format, ac) for ac in acs])
-    acsdic[None] = acsdic[NAME_FORMAT_URI]    
+    acsdic[None] = acsdic[NAME_FORMAT_URI]
     return dict([acsdic[a.name_format].ava_from(a) for a in statement])
 
 def to_local(acs, statement):
@@ -129,7 +129,7 @@ def to_local(acs, statement):
     """
     if not acs:
         acs = [AttributeConverter()]
-        
+
     ava = []
     for aconv in acs:
         try:
@@ -145,9 +145,9 @@ def from_local(acs, ava, name_format):
         if aconv.name_format == name_format:
             #print "Found a name_form converter"
             return aconv.to_(ava)
-            
+
     return None
-    
+
 def from_local_name(acs, attr, name_format):
     """
     :param acs: List of AttributeConverter instances
@@ -161,7 +161,7 @@ def from_local_name(acs, attr, name_format):
             #print "Found a name_form converter"
             return aconv.to_format(attr)
     return attr
-    
+
 def to_local_name(acs, attr):
     """
     :param acs: List of AttributeConverter instances
@@ -174,16 +174,16 @@ def to_local_name(acs, attr):
             return lattr
 
     return attr.friendly_name
-    
+
 class AttributeConverter(object):
     """ Converts from an attribute statement to a key,value dictionary and
         vice-versa """
-        
+
     def __init__(self, name_format=""):
         self.name_format = name_format
         self._to = None
         self._fro = None
-        
+
 #    def set(self, name, filename):
 #        if name == "to":
 #            self.set_to(filename)
@@ -201,7 +201,7 @@ class AttributeConverter(object):
         """ If one of the transformations is not defined it is expected to
         be the mirror image of the other.
         """
-        
+
         if self._fro is None and self._to is not None:
             self._fro = dict([(value, key) for key, value in self._to.items()])
         if self._to is None and self.fro is not None:
@@ -229,7 +229,7 @@ class AttributeConverter(object):
         if self._fro is None or self._to is None:
             self.adjust()
 
-        
+
     def fail_safe_fro(self, statement):
         """ In case there is not formats defined """
         result = {}
@@ -244,9 +244,9 @@ class AttributeConverter(object):
                 if not value.text:
                     result[name].append('')
                 else:
-                    result[name].append(value.text.strip())    
+                    result[name].append(value.text.strip())
         return result
-        
+
     def ava_from(self, attribute):
         try:
             attr = self._fro[attribute.name.strip()]
@@ -264,31 +264,31 @@ class AttributeConverter(object):
                 val.append(value.text.strip())
 
         return attr, val
-        
+
     def fro(self, statement):
-        """ Get the attributes and the attribute values 
-        
+        """ Get the attributes and the attribute values
+
         :param statement: The AttributeStatement.
         :return: A dictionary containing attributes and values
         """
-        
+
         if not self.name_format:
             return self.fail_safe_fro(statement)
-            
+
         result = {}
         for attribute in statement.attribute:
             if attribute.name_format and self.name_format and \
                 attribute.name_format != self.name_format:
                 raise UnknownNameFormat
-                
+
             (key, val) = self.ava_from(attribute)
             result[key] = val
-            
+
         if not result:
-            return self.fail_safe_fro(statement) 
+            return self.fail_safe_fro(statement)
         else:
             return result
-        
+
     def to_format(self, attr):
         """ Creates an Attribute instance with name, name_format and
         friendly_name
@@ -298,15 +298,15 @@ class AttributeConverter(object):
         """
         try:
             return factory(saml.Attribute,
-                            name=self._to[attr], 
+                            name=self._to[attr],
                             name_format=self.name_format,
                             friendly_name=attr)
         except KeyError:
             return factory(saml.Attribute, name=attr)
-    
+
     def from_format(self, attr):
         """ Find out the local name of an attribute
-         
+
         :param attr: An saml.Attribute instance
         :return: The local attribute name or "" if no mapping could be made
         """
@@ -323,7 +323,7 @@ class AttributeConverter(object):
                 pass
 
         return ""
-        
+
     def to_(self, attrvals):
         """ Create a list of Attribute instances.
 
@@ -342,5 +342,5 @@ class AttributeConverter(object):
                 attributes.append(factory(saml.Attribute,
                                             name=key,
                                             attribute_value=do_ava(value)))
-        
+
         return attributes

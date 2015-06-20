@@ -327,7 +327,7 @@ class Saml2Client(object):
         else:
             to_sign = []
 
-        request.name_id_policy = name_id_policy
+        # request.name_id_policy = name_id_policy
         request.issuer = self._issuer(spentityid)
 
         if log is None:
